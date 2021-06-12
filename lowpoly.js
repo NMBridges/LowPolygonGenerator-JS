@@ -98,13 +98,19 @@ window.addEventListener('load', function() {
     loadedImage.hidden = true;
 
     /**
-     * When a file is uploaded, this function is called.
+     * When a file is uploaded, it calls the 'readImage()' function to
+     * appropriately analyze the new file.
      */
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
     });
 
+    /**
+     * Analyzes the inputted image file, extracting pixel data and storing
+     * it in the 'img' RawImage object.
+     * @param {File} file The inputted image file to analyze.
+     */
     function readImage(file) {
         // Check if the file is an image.
         if (file.type && !file.type.startsWith('image/')) {

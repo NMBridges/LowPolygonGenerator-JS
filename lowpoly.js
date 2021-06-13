@@ -71,15 +71,19 @@ class Color {
      * @param {number} a Integer value that represents the alpha value.
      */
     constructor(r, g, b, a) {
+        /** @type {number} Integer value that represents the red value. */
         this.r = r;
+        /** @type {number} Integer value that represents the green value. */
         this.g = g;
+        /** @type {number} Integer value that represents the blue value. */
         this.b = b;
+        /** @type {number} Integer value that represents the alpha value. */
         this.a = a;
     }
 }
 
 /**
- * @type {RawImage} An object used to store color data about the user's inputted image.
+ * An object used to store color data about the user's inputted image.
  */
 var img = new RawImage();
 

@@ -110,6 +110,19 @@ class Color {
          */
         this.y = y;
     }
+
+    /**
+     * Compares the Vector2 values to see if they are equal.
+     * @param {Vector2} otherVector 
+     * @returns Whether or not the values are equal.
+     */
+    equals(otherVector) {
+        return (Math.abs(this.x - otherVector.x) < 0.0001 && Math.abs(this.y - otherVector.y) < 0.0001);
+    }
+
+    toString() {
+        return "(" + this.x + ", " + this.y + ")";
+    }
 }
 
 /**
@@ -259,7 +272,7 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
-        generatePoints(3, 3, 0.1, 1);
+        generatePoints(5, 5, 0.1, 1);
         drawPoints();
         createTriangles();
     });
@@ -384,13 +397,13 @@ window.addEventListener('load', function() {
 
     /**
      * Returns whether the first point is counterclockwise or clockwise (small angle) from the
-     * second point, relative to the center point.
+     * second point, relative to the center point. If < 0, it is counterclockwise.
      * @param {Vector2} p1 The first point.
      * @param {Vector2} p2 The second point.
      * @param {Vector2} center The central point (incenter) from which the points are compared.
      */
     function isCounterclockwise(p1, p2, center) {
-        return (p1.x - center.x) * (p2.y - center.y) - (p2.x - center.x) * (p1.y - center.y) < 0;
+        return (p1.x - center.x) * (p2.y - center.y) - (p2.x - center.x) * (p1.y - center.y);
     }
 
     /**
@@ -408,24 +421,43 @@ window.addEventListener('load', function() {
         triangles.push(new Vector3(xPoints - 1, 0, points.length - 1));
         triangles.push(new Vector3(points.length - 1, 0, (xPoints - 1) * (yPoints)));
 
-        console.log("YO" + points);
         // Loops through list of all points, adds them, and flips triangles appropriately.
         for(var newPointIndex = 0; newPointIndex < points.length; newPointIndex++) {
             if(!points[newPointIndex].used) {
                 const pt = new Vector2(points[newPointIndex].x, points[newPointIndex].y);
                 for(var triIndex = 0; triIndex < triangles.length; triIndex++) {
                     if(isPointInsideTriangle(pt, triangles[triIndex])) {
-                        var outTri = triangles[triIndex];
+                        const outTri = triangles[triIndex];
                         if(newPointIndex != outTri.x && newPointIndex != outTri.y && newPointIndex != outTri.z) {
-                            // IF pt != any of triangles[triIndex].x,y,z
                             // Subdivides triangle into three new triangles
-                            const v1 = triangles[triIndex].x;
-                            const v2 = triangles[triIndex].y;
-                            const v3 = triangles[triIndex].z;
-                            triangles.push(reorderCounterclockwise(new Vector3(v1, v2, newPointIndex)));
-                            triangles.push(reorderCounterclockwise(new Vector3(v1, v3, newPointIndex)));
-                            triangles.push(reorderCounterclockwise(new Vector3(v3, v2, newPointIndex)));
-                            //triangles.splice(triIndex, 1);
+                            const v1 = outTri.x;
+                            const v2 = outTri.y;
+                            const v3 = outTri.z;
+                            
+                            triangles.splice(triIndex, 1);
+
+                            var countToFlipCheck = 0;
+
+                            var newTri = reorderCounterclockwise(new Vector3(v1, v2, newPointIndex));
+                            if(!hasZeroArea(newTri)) {
+                                triangles.push(newTri);
+                                countToFlipCheck++;
+                            }
+                            newTri = reorderCounterclockwise(new Vector3(v1, v3, newPointIndex));
+                            if(!hasZeroArea(newTri)) {
+                                triangles.push(newTri);
+                                countToFlipCheck++;
+                            }
+                            newTri = reorderCounterclockwise(new Vector3(v2, v3, newPointIndex));
+                            if(!hasZeroArea(newTri)) {
+                                triangles.push(newTri);
+                                countToFlipCheck++;
+                            }
+                            
+                            for(var checker = 0; checker < countToFlipCheck; checker++) {
+                                recursiveFlip(triangles.length - checker - 1);
+                            }
+
                             break;
                         }
                     }
@@ -437,17 +469,74 @@ window.addEventListener('load', function() {
     }
 
     /**
+     * Flips triangles until they should not be flipped anymore.
+     * Triangles should be flipped when another point is within
+     * their circumcircle.
+     * @param {number} a Integer value representing the index of the
+     * triangle to check for flips.
+     */
+    function recursiveFlip(a) {
+        const tri = triangles[a];
+        for(var index = 0; index < points.length; index++) {
+            if(index != tri.x && index != tri.y && index != tri.z) {
+                if(isPointInTriangleCircumcircle(new Vector2(points[index].x, points[index].y), tri)) {
+                    // Check if there are any triangles with vertices of that point + two values of
+                    // the original triangle (aka they share a side)
+                    const firstTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.y));
+                    const secondTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.z));
+                    const thirdTest = indexOfTriWithPointVertices(new Vector3(index, tri.y, tri.y));
+
+                    console.log(firstTest + "\n" + secondTest + "\n" + thirdTest);
+                    console.log(triangles);
+                    
+                    var indexToUse = -1;
+                    if(firstTest != -1) {
+                        indexToUse = firstTest;
+                    } else if(secondTest != -1) {
+                        indexToUse = secondTest;
+                    } else if(thirdTest != -1) {
+                        indexToUse = thirdTest;
+                    }
+                    
+                    if(indexToUse != -1) {
+                        flipTriangles(a, indexToUse);
+                        recursiveFlip(a);
+                        recursiveFlip(indexToUse);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {Vector3} triangle The indices of the triangle points
+     */
+    function indexOfTriWithPointVertices(triangle) {
+        const indices1 = [triangle.x, triangle.y, triangle.z];
+        const indcSorted = indices1.sort().join(':');
+        for(var index = 0; index < triangles.length; index++) {
+            const indices2 = [triangles[index].x, triangles[index].y, triangles[index].z];
+            if (indcSorted == indices2.sort().join(':')) {
+                return index;
+            }
+        } 
+        return -1;
+    }
+
+    /**
      * Returns whether or not the inputted point is inside the inputted triangle.
      * @param {Vector2} point The coordinates of the point to test.
      * @param {Vector3} triangle A Vector3 value containing the indices of the triangle.
      */
     function isPointInsideTriangle(point, triangle) {
         /** The first vertex of the triangle. */
-        const v1 = points[parseInt(triangle.x)];
+        const v1 = new Vector2(points[triangle.x].x, points[triangle.x].y);
         /** The second vertex of the triangle. */
-        const v2 = points[parseInt(triangle.y)];
+        const v2 = new Vector2(points[triangle.y].x, points[triangle.y].y);
         /** The third vertex of the triangle. */
-        const v3 = points[parseInt(triangle.z)];
+        const v3 = new Vector2(points[triangle.z].x, points[triangle.z].y);
 
         // Test for whether the point sees the points in the
         // proper order (either all clockwise or all counterclockwise)
@@ -467,11 +556,11 @@ window.addEventListener('load', function() {
      */
     function isPointInTriangleCircumcircle(point, triangle) {
         /** @type {Vector2} The first vertex of the triangle. */
-        const a = new Vector2(points[parseInt(triangle.x)].x, points[parseInt(triangle.x)].y);
+        const a = new Vector2(points[triangle.x].x, points[triangle.x].y);
         /** @type {Vector2} The second vertex of the triangle. */
-        const b = new Vector2(points[parseInt(triangle.y)].x, points[parseInt(triangle.y)].y);
+        const b = new Vector2(points[triangle.y].x, points[triangle.y].y);
         /** @type {Vector2} The third vertex of the triangle. */
-        const c = new Vector2(points[parseInt(triangle.z)].x, points[parseInt(triangle.z)].y);
+        const c = new Vector2(points[triangle.z].x, points[triangle.z].y);
         /** @type {Vector2} The point to test. */
         const d = point;
 
@@ -492,37 +581,156 @@ window.addEventListener('load', function() {
      */
     function reorderCounterclockwise(triangle) {
         // Coordinates of the triangles. All are of type Vector2.
-        var p1 = new Vector2(points[parseInt(triangle.x)].x, points[parseInt(triangle.x)].y);
-        var p2 = new Vector2(points[parseInt(triangle.y)].x, points[parseInt(triangle.y)].y);
-        var p3 = new Vector2(points[parseInt(triangle.z)].x, points[parseInt(triangle.z)].y);
+        const p1 = new Vector2(points[triangle.x].x, points[triangle.x].y);
+        const p2 = new Vector2(points[triangle.y].x, points[triangle.y].y);
+        const p3 = new Vector2(points[triangle.z].x, points[triangle.z].y);
 
-        var inc = findTriangleIncenter(p1, p2, p3);
+        const inc = findTriangleIncenter(p1, p2, p3);
 
-        if(isCounterclockwise(p2, p1, inc)) {
-            if(isCounterclockwise(p3, p1, inc)) {
-                if(isCounterclockwise(p3, p2, inc)) {
+        if(isCounterclockwise(p2, p1, inc) < 0) {
+            if(isCounterclockwise(p3, p1, inc) < 0) {
+                if(isCounterclockwise(p3, p2, inc) < 0) {
                     // 1 2 3
-                    return new Vector3(triangle.x, triangle.y, triangle.z);
+                    const oldX = triangle.x + 0;
+                    const oldY = triangle.y + 0;
+                    const oldZ = triangle.z + 0;
+                    return new Vector3(oldX, oldY, oldZ);
                 } else {
                     // 1 3 2
-                    return new Vector3(triangle.x, triangle.z, triangle.y);
+                    const oldX = triangle.x + 0;
+                    const oldY = triangle.y + 0;
+                    const oldZ = triangle.z + 0;
+                    return new Vector3(oldX, oldZ, oldY);
                 }
             } else {
                 // 3 1 2
-                return new Vector3(triangle.z, triangle.x, triangle.y);
+                const oldX = triangle.x + 0;
+                const oldY = triangle.y + 0;
+                const oldZ = triangle.z + 0;
+                return new Vector3(oldZ, oldX, oldY);
             }
-        } else if(isCounterclockwise(p3, p2, inc)) {
-            if(isCounterclockwise(p3, p1, inc)) {
+        } else if(isCounterclockwise(p3, p2, inc) < 0) {
+            if(isCounterclockwise(p3, p1, inc) < 0) {
                 // 2 1 3
-                return new Vector3(triangle.y, triangle.x, triangle.z);
+                const oldX = triangle.x + 0;
+                const oldY = triangle.y + 0;
+                const oldZ = triangle.z + 0;
+                return new Vector3(oldY, oldX, oldZ);
             } else {
                 // 2 3 1
-                return new Vector3(triangle.y, triangle.z, triangle.x);
+                const oldX = triangle.x + 0;
+                const oldY = triangle.y + 0;
+                const oldZ = triangle.z + 0;
+                return new Vector3(oldY, oldZ, oldX);
             }
         } else {
             // 3 2 1
-            return new Vector3(triangle.z, triangle.y, triangle.x);
+            const oldX = triangle.x + 0;
+            const oldY = triangle.y + 0;
+            const oldZ = triangle.z + 0;
+            return new Vector3(oldZ, oldY, oldX);
         }
+    }
+
+    /**
+     * Finds whether the triangle has an area of zero.
+     * @param {Vector3} a The triangle to find the area of.
+     * @returns A boolean of whether the triangle has an area of zero.
+     */
+    function hasZeroArea(a) {
+        const p1 = points[a.x];
+        const p2 = points[a.y];
+        const p3 = points[a.z];
+
+        const s1 = Math.sqrt((p2.x - p3.x) * (p2.x - p3.x) + (p2.y - p3.y) * (p2.y - p3.y));
+        const s2 = Math.sqrt((p1.x - p3.x) * (p1.x - p3.x) + (p1.y - p3.y) * (p1.y - p3.y));
+        const s3 = Math.sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
+
+        return (s1 == s2 + s3 || s2 == s1 + s3 || s3 == s1 + s2);
+    }
+
+    /**
+     * Flips the bordering triangles, replacing the triangles at the given
+     * indices with these flipped ones.
+     * e.g. <|>   turns into   <->
+     * @param {number} a The integer value representing the index of the first triangle.
+     * @param {number} b The integer value representing the index of the second triangle.
+     */
+    function flipTriangles(a, b) {
+        // The vertices of the triangles.
+        const t1v1 = new Vector2(points[triangles[a].x].x, points[triangles[a].x].y);
+        const t1v2 = new Vector2(points[triangles[a].y].x, points[triangles[a].y].y);
+        const t1v3 = new Vector2(points[triangles[a].z].x, points[triangles[a].z].y);
+        const t2v1 = new Vector2(points[triangles[b].x].x, points[triangles[b].x].y);
+        const t2v2 = new Vector2(points[triangles[b].y].x, points[triangles[b].y].y);
+        const t2v3 = new Vector2(points[triangles[b].z].x, points[triangles[b].z].y);
+        /** @type {Vector2} */
+        const verts = [t1v1, t1v2, t1v3, t2v1, t2v2, t2v3];
+
+        /**
+         * @type {Vector2[]} The unique vertices.
+         */
+        var uniques = [];
+        /**
+         * @type {Vector2[]} The duplicate vertices.
+         */
+        var duplicates = [];
+
+        // Find which vertices are similar and dissimilar.
+        for(var index1 = 0; index1 < verts.length; index1++) {
+            for(var index2 = 0; index2 < verts.length; index2++) {
+                if(verts[index1].equals(verts[index2]) && index1 != index2) {
+                    if(index1 < index2) {
+                        duplicates.push(index1);
+                    }
+                    break;
+                } else if(index2 == verts.length - 1) {
+                    uniques.push(index1);
+                }
+            }
+        }
+
+        // Converts indices back relative to 'triangles.'
+        for(var index = 0; index < 2; index++) {
+            
+            if(uniques[index] == 0) {
+                uniques[index] = triangles[a].x;
+            } else if(uniques[index] == 1) {
+                uniques[index] = triangles[a].y;
+            } else if(uniques[index] == 2) {
+                uniques[index] = triangles[a].z;
+            } else if(uniques[index] == 3) {
+                uniques[index] = triangles[b].x;
+            } else if(uniques[index] == 4) {
+                uniques[index] = triangles[b].y;
+            } else if(uniques[index] == 5) {
+                uniques[index] = triangles[b].z;
+            }
+
+            if(duplicates[index] == 0) {
+                duplicates[index] = triangles[a].x;
+            } else if(duplicates[index] == 1) {
+                duplicates[index] = triangles[a].y;
+            } else if(duplicates[index] == 2) {
+                duplicates[index] = triangles[a].z;
+            } else if(duplicates[index] == 3) {
+                duplicates[index] = triangles[b].x;
+            } else if(duplicates[index] == 4) {
+                duplicates[index] = triangles[b].y;
+            } else if(duplicates[index] == 5) {
+                duplicates[index] = triangles[b].z;
+            }
+        }
+
+        // Reorders triangles.
+        const newTri1 = new Vector3(uniques[0], uniques[1], duplicates[0]);
+        const newTri2 = new Vector3(uniques[0], uniques[1], duplicates[1]);
+
+        console.log("");
+
+        // Updates 'triangles.'
+        triangles[a] = newTri1;
+        triangles[b] = newTri2;
     }
 
 });

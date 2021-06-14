@@ -272,7 +272,7 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
-        generatePoints(5, 5, 0.1, 1);
+        generatePoints(5, 5, 1, 1);
         drawPoints();
         createTriangles();
     });
@@ -455,7 +455,7 @@ window.addEventListener('load', function() {
                             }
                             
                             for(var checker = 0; checker < countToFlipCheck; checker++) {
-                                recursiveFlip(triangles.length - checker - 1);
+                                recursiveFlip(triangles.length - checker - 1, 0);
                             }
 
                             break;
@@ -474,8 +474,9 @@ window.addEventListener('load', function() {
      * their circumcircle.
      * @param {number} a Integer value representing the index of the
      * triangle to check for flips.
+     * @param {number} flipCount The max number of recursions this function should be called.
      */
-    function recursiveFlip(a) {
+    function recursiveFlip(a, flipCount) {
         const tri = triangles[a];
         for(var index = 0; index < points.length; index++) {
             if(index != tri.x && index != tri.y && index != tri.z) {
@@ -487,7 +488,6 @@ window.addEventListener('load', function() {
                     const thirdTest = indexOfTriWithPointVertices(new Vector3(index, tri.y, tri.y));
 
                     console.log(firstTest + "\n" + secondTest + "\n" + thirdTest);
-                    console.log(triangles);
                     
                     var indexToUse = -1;
                     if(firstTest != -1) {
@@ -500,8 +500,12 @@ window.addEventListener('load', function() {
                     
                     if(indexToUse != -1) {
                         flipTriangles(a, indexToUse);
-                        recursiveFlip(a);
-                        recursiveFlip(indexToUse);
+                        // The max number of recursions per initial call.
+                        if(flipCount + 1 < 25) {
+                            console.log("Indices: " + a + ", " + indexToUse);
+                            recursiveFlip(indexToUse, flipCount + 1);
+                            recursiveFlip(a, flipCount + 1);
+                        }
                         return;
                     }
                 }
@@ -726,7 +730,7 @@ window.addEventListener('load', function() {
         const newTri1 = new Vector3(uniques[0], uniques[1], duplicates[0]);
         const newTri2 = new Vector3(uniques[0], uniques[1], duplicates[1]);
 
-        console.log("");
+        console.log("Old: " + triangles[a] + ", " + triangles[b] + "\nNew" + newTri1 + ", " + newTri2);
 
         // Updates 'triangles.'
         triangles[a] = newTri1;

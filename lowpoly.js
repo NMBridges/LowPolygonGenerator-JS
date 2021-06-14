@@ -31,6 +31,7 @@ class RawImage {
     constructor(width, height) {
         this.width = width;
         this.height = height;
+        /** @type {Color[][]} The colors of all the pixels in the image. */
         this.pixels = Array.from(Array(height), () => new Array(width));
     }
 
@@ -239,7 +240,12 @@ var points = [];
  * e.g. triangles[0] = new Vector3(0, 1, 2) with 0, 1, and 2 being the indices
  * of points from 'points'
  */
-var triangles = [];
+ var triangles = [];
+ 
+ /**
+  * @type {Color[]} An array that stores the colors of the triangles.
+  */
+ var triColors = [];
 
 /**
  * @type {number} The number of points in the x-direction per row.
@@ -272,8 +278,7 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
-        generatePoints(5, 5, 1, 1);
-        drawPoints();
+        generatePoints(8, 8, 0.2, 1);
         createTriangles();
     });
 
@@ -302,6 +307,10 @@ window.addEventListener('load', function() {
                 helpCanvas.height = loadedImage.height;
                 helpCanvas.getContext('2d').drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height);
                 
+                const imgHoverWratio = loadedImage.height / loadedImage.width;
+                mainCanvas.width = window.innerWidth / 2;
+                mainCanvas.height = window.innerWidth / 2 * imgHoverWratio;
+
                 img = new RawImage(helpCanvas.width, helpCanvas.height);
 
                 for(var y = 0; y < helpCanvas.height; y++) {
@@ -312,6 +321,9 @@ window.addEventListener('load', function() {
                 }
 
                 console.log(img);
+
+                drawTriangles();
+                console.log(triangles.length);
             }
         });
         reader.readAsDataURL(file);
@@ -362,21 +374,77 @@ window.addEventListener('load', function() {
      * Draws the points within the 'points' array.
      */
     function drawPoints() {
+        mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
         for(var pointIndex = 0; pointIndex < points.length; pointIndex++) {
             mainCanvas.getContext('2d').fillRect(points[pointIndex].x * (mainCanvas.width - 1), points[pointIndex].y * (mainCanvas.height - 1), 1, 1);
         }
     }
 
     /**
+     * Fills the triColors list with the appropriate color for each triangle.
+     * The appropriate color for each triangle is the average color of all 
+     * the pixels of the image within that triangle.
+     */
+    function getTriangleColors() {
+        triColors = [];
+        
+        /** @type {number} The number of pixels in each triangle used to find the average color. */
+        var triColorsCount = [];
+        
+        for(var index = 0; index < triangles.length; index++) {
+            triColors.push(new Color(0,0,0,0));
+            triColorsCount.push(0);
+        }
+        for(var x = 0; x < img.width; x++) {
+            for(var y = 0; y < img.height; y++) {
+                const posX = x / img.width;
+                const posY = y / img.height;
+                const indx = findIndexOfSurroundingTriangle(new Vector2(posX, posY));
+                if(indx != -1) {
+                    const pixelColor = img.pixels[y][x];
+                    const avgColor = triColors[indx];
+                    const colorCount = triColorsCount[indx];
+                    const totalR = avgColor.r * colorCount;
+                    const totalG = avgColor.g * colorCount;
+                    const totalB = avgColor.b * colorCount;
+                    const totalA = avgColor.a * colorCount;
+                    triColorsCount[indx] = colorCount + 1;
+                    triColors[indx] = new Color((totalR + pixelColor.r) / (colorCount + 1), (totalG + pixelColor.g) / (colorCount + 1), (totalB + pixelColor.b) / (colorCount + 1), (totalA + pixelColor.a) / (colorCount + 1));
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns index of the triangle the inputted point is in.
+     * @param {Vector2} pt The inputted point.
+     * @returns The index of the triangle the inputted point is in.
+     */
+    function findIndexOfSurroundingTriangle(pt) {
+        for(var index = 0; index < triangles.length; index++) {
+            if(isPointInsideTriangle(pt, triangles[index])) {
+                return index;
+            }
+        }
+        return -1;
+    }
+    
+    /**
      * Draws the triangles within the 'triangles' array.
      */
     function drawTriangles() {
+        mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        getTriangleColors();
+        console.log(triColors);
         for(var triIndex = 0; triIndex < triangles.length; triIndex++) {
             mainCanvas.getContext('2d').beginPath();
             mainCanvas.getContext('2d').moveTo(points[triangles[triIndex].x].x * (mainCanvas.width - 1), points[triangles[triIndex].x].y * (mainCanvas.height - 1));
             mainCanvas.getContext('2d').lineTo(points[triangles[triIndex].y].x * (mainCanvas.width - 1), points[triangles[triIndex].y].y * (mainCanvas.height - 1));
             mainCanvas.getContext('2d').lineTo(points[triangles[triIndex].z].x * (mainCanvas.width - 1), points[triangles[triIndex].z].y * (mainCanvas.height - 1));
             mainCanvas.getContext('2d').lineTo(points[triangles[triIndex].x].x * (mainCanvas.width - 1), points[triangles[triIndex].x].y * (mainCanvas.height - 1));
+            mainCanvas.getContext('2d').fillStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
+            mainCanvas.getContext('2d').strokeStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
+            //mainCanvas.getContext('2d').fill();
             mainCanvas.getContext('2d').stroke();
         }
     }
@@ -396,13 +464,30 @@ window.addEventListener('load', function() {
     }
 
     /**
-     * Returns whether the first point is counterclockwise or clockwise (small angle) from the
-     * second point, relative to the center point. If < 0, it is counterclockwise.
+     * Returns whether the three points are counterclockwise or not.
+     *      True = counterclockwise.
+     *      False = clockwise.
+     * @param {Vector2} p1 The first point.
+     * @param {Vector2} p2 The second point.
+     * @param {Vector2} p3 The third point.
+     */
+    function isCounterclockwise(p1, p2, p3) {
+        var mat = new Matrix3D(
+            new Vector3(p1.x, p1.y, 1),
+            new Vector3(p2.x, p2.y, 1),
+            new Vector3(p3.x, p3.y, 1)
+        );
+
+        return mat.determinant() > 0;
+    }
+
+    /**
+     * Returns the first position's angle relative to the center point and the second point.
      * @param {Vector2} p1 The first point.
      * @param {Vector2} p2 The second point.
      * @param {Vector2} center The central point (incenter) from which the points are compared.
      */
-    function isCounterclockwise(p1, p2, center) {
+    function relativeSign(p1, p2, center) {
         return (p1.x - center.x) * (p2.y - center.y) - (p2.x - center.x) * (p1.y - center.y);
     }
 
@@ -465,7 +550,6 @@ window.addEventListener('load', function() {
                 points[newPointIndex].used = true;
             }
         }
-        drawTriangles();
     }
 
     /**
@@ -486,8 +570,6 @@ window.addEventListener('load', function() {
                     const firstTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.y));
                     const secondTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.z));
                     const thirdTest = indexOfTriWithPointVertices(new Vector3(index, tri.y, tri.y));
-
-                    console.log(firstTest + "\n" + secondTest + "\n" + thirdTest);
                     
                     var indexToUse = -1;
                     if(firstTest != -1) {
@@ -501,8 +583,7 @@ window.addEventListener('load', function() {
                     if(indexToUse != -1) {
                         flipTriangles(a, indexToUse);
                         // The max number of recursions per initial call.
-                        if(flipCount + 1 < 25) {
-                            console.log("Indices: " + a + ", " + indexToUse);
+                        if(flipCount + 1 < 1500) {
                             recursiveFlip(indexToUse, flipCount + 1);
                             recursiveFlip(a, flipCount + 1);
                         }
@@ -544,9 +625,9 @@ window.addEventListener('load', function() {
 
         // Test for whether the point sees the points in the
         // proper order (either all clockwise or all counterclockwise)
-        const cc1 = isCounterclockwise(point, v1, v2);
-        const cc2 = isCounterclockwise(point, v2, v3);
-        const cc3 = isCounterclockwise(point, v3, v1);
+        const cc1 = relativeSign(point, v1, v2);
+        const cc2 = relativeSign(point, v2, v3);
+        const cc3 = relativeSign(point, v3, v1);
         const cond1 = (cc1 < 0) || (cc2 < 0) || (cc3 < 0);
         const cond2 = (cc1 > 0) || (cc2 > 0) || (cc3 > 0);
 
@@ -589,50 +670,16 @@ window.addEventListener('load', function() {
         const p2 = new Vector2(points[triangle.y].x, points[triangle.y].y);
         const p3 = new Vector2(points[triangle.z].x, points[triangle.z].y);
 
-        const inc = findTriangleIncenter(p1, p2, p3);
-
-        if(isCounterclockwise(p2, p1, inc) < 0) {
-            if(isCounterclockwise(p3, p1, inc) < 0) {
-                if(isCounterclockwise(p3, p2, inc) < 0) {
-                    // 1 2 3
-                    const oldX = triangle.x + 0;
-                    const oldY = triangle.y + 0;
-                    const oldZ = triangle.z + 0;
-                    return new Vector3(oldX, oldY, oldZ);
-                } else {
-                    // 1 3 2
-                    const oldX = triangle.x + 0;
-                    const oldY = triangle.y + 0;
-                    const oldZ = triangle.z + 0;
-                    return new Vector3(oldX, oldZ, oldY);
-                }
-            } else {
-                // 3 1 2
-                const oldX = triangle.x + 0;
-                const oldY = triangle.y + 0;
-                const oldZ = triangle.z + 0;
-                return new Vector3(oldZ, oldX, oldY);
-            }
-        } else if(isCounterclockwise(p3, p2, inc) < 0) {
-            if(isCounterclockwise(p3, p1, inc) < 0) {
-                // 2 1 3
-                const oldX = triangle.x + 0;
-                const oldY = triangle.y + 0;
-                const oldZ = triangle.z + 0;
-                return new Vector3(oldY, oldX, oldZ);
-            } else {
-                // 2 3 1
-                const oldX = triangle.x + 0;
-                const oldY = triangle.y + 0;
-                const oldZ = triangle.z + 0;
-                return new Vector3(oldY, oldZ, oldX);
-            }
-        } else {
-            // 3 2 1
+        if(isCounterclockwise(p1, p2, p3)) {
             const oldX = triangle.x + 0;
             const oldY = triangle.y + 0;
             const oldZ = triangle.z + 0;
-            return new Vector3(oldZ, oldY, oldX);
+            return new Vector3(oldX, oldY, oldZ);
+        } else {
+            const oldX = triangle.x + 0;
+            const oldY = triangle.y + 0;
+            const oldZ = triangle.z + 0;
+            return new Vector3(oldX, oldZ, oldY);
         }
     }
 
@@ -727,10 +774,8 @@ window.addEventListener('load', function() {
         }
 
         // Reorders triangles.
-        const newTri1 = new Vector3(uniques[0], uniques[1], duplicates[0]);
-        const newTri2 = new Vector3(uniques[0], uniques[1], duplicates[1]);
-
-        console.log("Old: " + triangles[a] + ", " + triangles[b] + "\nNew" + newTri1 + ", " + newTri2);
+        const newTri1 = reorderCounterclockwise(new Vector3(uniques[0], uniques[1], duplicates[0]));
+        const newTri2 = reorderCounterclockwise(new Vector3(uniques[0], uniques[1], duplicates[1]));
 
         // Updates 'triangles.'
         triangles[a] = newTri1;

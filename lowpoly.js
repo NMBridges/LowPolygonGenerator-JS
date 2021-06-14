@@ -278,8 +278,9 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
-        generatePoints(8, 8, 0.2, 1);
+        generatePoints(12, 8, 1, 1);
         createTriangles();
+        console.log(points);
     });
 
     /**
@@ -321,8 +322,9 @@ window.addEventListener('load', function() {
                 }
 
                 console.log(img);
+                console.log(triangles);
 
-                drawTriangles();
+                drawTriangles(false);
                 console.log(triangles.length);
             }
         });
@@ -345,8 +347,8 @@ window.addEventListener('load', function() {
         yPoints = y;
         points = [];
         // Generates a grid of randomly generated points
-        for(var xCount = 0; xCount < x; xCount++) {
-            for(var yCount = 0; yCount < y; yCount++) {
+        for(var yCount = 0; yCount < y; yCount++) {
+            for(var xCount = 0; xCount < x; xCount++) {
                 var newXValue = (xCount + (Math.random() - 0.5) * randomFactor ) / (x - 1);
                 var newYValue = (yCount + (Math.random() - 0.5) * randomFactor ) / (y - 1);
 
@@ -432,19 +434,23 @@ window.addEventListener('load', function() {
     /**
      * Draws the triangles within the 'triangles' array.
      */
-    function drawTriangles() {
+    function drawTriangles(fill = true) {
         mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-        getTriangleColors();
-        console.log(triColors);
+        if(fill) {
+            getTriangleColors();
+            console.log(triColors);
+        }
         for(var triIndex = 0; triIndex < triangles.length; triIndex++) {
             mainCanvas.getContext('2d').beginPath();
             mainCanvas.getContext('2d').moveTo(points[triangles[triIndex].x].x * (mainCanvas.width - 1), points[triangles[triIndex].x].y * (mainCanvas.height - 1));
             mainCanvas.getContext('2d').lineTo(points[triangles[triIndex].y].x * (mainCanvas.width - 1), points[triangles[triIndex].y].y * (mainCanvas.height - 1));
             mainCanvas.getContext('2d').lineTo(points[triangles[triIndex].z].x * (mainCanvas.width - 1), points[triangles[triIndex].z].y * (mainCanvas.height - 1));
             mainCanvas.getContext('2d').lineTo(points[triangles[triIndex].x].x * (mainCanvas.width - 1), points[triangles[triIndex].x].y * (mainCanvas.height - 1));
-            mainCanvas.getContext('2d').fillStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
-            mainCanvas.getContext('2d').strokeStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
-            //mainCanvas.getContext('2d').fill();
+            if(fill) {
+                mainCanvas.getContext('2d').fillStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
+                mainCanvas.getContext('2d').fill();
+            }
+            //mainCanvas.getContext('2d').strokeStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
             mainCanvas.getContext('2d').stroke();
         }
     }
@@ -502,9 +508,9 @@ window.addEventListener('load', function() {
         points[0].used = true;
         points[xPoints - 1].used = true;
         points[points.length - 1].used = true;
-        points[(xPoints - 1) * (yPoints)].used = true;
+        points[(xPoints) * (yPoints - 1)].used = true;
         triangles.push(new Vector3(xPoints - 1, 0, points.length - 1));
-        triangles.push(new Vector3(points.length - 1, 0, (xPoints - 1) * (yPoints)));
+        triangles.push(new Vector3(points.length - 1, 0, (xPoints) * (yPoints - 1)));
 
         // Loops through list of all points, adds them, and flips triangles appropriately.
         for(var newPointIndex = 0; newPointIndex < points.length; newPointIndex++) {
@@ -563,7 +569,7 @@ window.addEventListener('load', function() {
     function recursiveFlip(a, flipCount) {
         const tri = triangles[a];
         for(var index = 0; index < points.length; index++) {
-            if(index != tri.x && index != tri.y && index != tri.z) {
+            if(index != tri.x && index != tri.y && index != tri.z && points[index].used) {
                 if(isPointInTriangleCircumcircle(new Vector2(points[index].x, points[index].y), tri)) {
                     // Check if there are any triangles with vertices of that point + two values of
                     // the original triangle (aka they share a side)

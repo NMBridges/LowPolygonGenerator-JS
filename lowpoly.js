@@ -7,9 +7,17 @@
 /**
  * A webpage element that is used, in this case, to extract image pixel data.
  */
-var canvas = document.createElement("canvas");
-canvas.width = 0;
-canvas.height = 0;
+var helpCanvas = document.getElementById("helpCanvas");
+helpCanvas.width = 0;
+helpCanvas.height = 0;
+helpCanvas.hidden = true;
+
+/**
+ * A webpage element that is used, in this case, to render and save new images.
+ */
+ var mainCanvas = document.getElementById("mainCanvas");
+ mainCanvas.width = window.innerWidth / 2;
+ mainCanvas.height = window.innerHeight / 2;
 
 /**
  * Holds pixel data about the user's uploaded image.
@@ -83,9 +91,143 @@ class Color {
 }
 
 /**
+ * Holds the values of a coordinate pair in 2-dimensional space.
+ */
+ class Vector2 {
+    /** 
+     * @param {number} x Floating point value that represents the x-value
+     * of the Vector2.
+     * @param {number} y Floating point value that represents the y-value
+     * of the Vector2.
+     */
+    constructor(x, y) {
+        /** @type {number} Floating point value that represents the x-value
+         * of the Vector2.
+         */
+        this.x = x;
+        /** @type {number} Floating point value that represents the y-value
+         * of the Vector2.
+         */
+        this.y = y;
+    }
+}
+
+/**
+ * Holds the values of a coordinate set in 3-dimensional space.
+ */
+ class Vector3 {
+    /** 
+     * @param {number} x Floating point value that represents the x-value
+     * of the Vector3.
+     * @param {number} y Floating point value that represents the y-value
+     * of the Vector3.
+     * @param {number} z Floating point value that represents the z-value
+     * of the Vector3.
+     */
+    constructor(x, y,z) {
+        /** @type {number} Floating point value that represents the x-value
+         * of the Vector3.
+         */
+        this.x = x;
+        /** @type {number} Floating point value that represents the y-value
+         * of the Vector3.
+         */
+        this.y = y;
+        /** @type {number} Floating point value that represents the z-value
+         * of the Vector3.
+         */
+        this.z = z;
+    }
+}
+
+/**
+ * A class for holding both a coordinate pair and the status of the Point as
+ * being 'used' in any triangle.
+ */
+class Point {
+    /**
+     * @param {number} x Floating point value that represents the x-value
+     * of the Point.
+     * @param {number} y Floating point value that represents the y-value
+     * of the Point.
+     */
+    constructor(x, y) {
+        /** @type {number} Floating point value that represents the x-value of the Point. */
+        this.x = x;
+        /** @type {number} Floating point value that represents the y-value of the Point. */
+        this.y = y;
+        /** @type {boolean} The status of the Point as being 'used' in any triangle. */
+        this.used = false;
+    }
+
+    /**
+     * Updates the instance variable 'used.'
+     * @param {boolean} newStatus
+     */
+    setUsed(newStatus) {
+        this.used = newStatus;
+    }
+}
+
+/**
+ * A class that holds the data for a 3x3 matrix and can calculate it's determinant
+ */
+class Matrix3D {
+    /** 
+     * @param {Vector3} topVec Vector3 value that represents the data for the top row
+     * of the matrix.
+     * @param {Vector3} midVec Vector3 value that represents the data for the middle row
+     * of the matrix.
+     * @param {Vector3} botVec Vector3 value that represents the data for the bottom row
+     * of the matrix.
+     */
+    constructor(topVec, midVec, botVec) {
+        /** @type {Vector3} Vector3 value for the top row of the matrix. */
+        this.topVec = topVec;
+        /** @type {Vector3} Vector3 value for the middle row of the matrix. */
+        this.midVec = midVec;
+        /** @type {Vector3} Vector3 value for the bottom row of the matrix. */
+        this.botVec = botVec;
+    }
+
+    /**
+     * @returns The determinant of the 3x3 matrix.
+     */
+    determinant() {
+        const i = this.topVec.x * (this.midVec.y * this.botVec.z - this.midVec.z * this.botVec.y);
+        const j = this.topVec.y * (this.midVec.x * this.botVec.z - this.midVec.z * this.botVec.x);
+        const k = this.topVec.z * (this.midVec.x * this.botVec.y - this.midVec.y * this.botVec.x);
+        return i - j + k;
+    }
+}
+
+/**
  * An object used to store color data about the user's inputted image.
  */
 var img = new RawImage();
+
+/**
+ * @type {Point[]} An array that stores the coordinates of all the randomly generated points.
+ * All x and y-values are between 0.0 and 1.0.
+ */
+var points = [];
+
+/**
+ * @type {Vector3[]} An array that stores the indices of the points of the triangles.
+ *      
+ * e.g. triangles[0] = new Vector3(0, 1, 2) with 0, 1, and 2 being the indices
+ * of points from 'points'
+ */
+var triangles = [];
+
+/**
+ * @type {number} The number of points in the x-direction per row.
+ */
+var xPoints;
+/**
+ * @type {number} The number of points in the y-direction per column.
+ */
+var yPoints;
 
 window.addEventListener('load', function() {
     /**
@@ -94,8 +236,8 @@ window.addEventListener('load', function() {
     const fileSelector = document.getElementById('fileSelector');
 
     /**
-     * The webpage element that is added invisibly to the canvas. It contains
-     * the source image uploaded by the user and is used by the canvas to extract
+     * The webpage element that is added invisibly to the helpCanvas. It contains
+     * the source image uploaded by the user and is used by the helpCanvas to extract
      * pixel data about said image.
      */
     const loadedImage = document.getElementById('loadedImage');
@@ -108,6 +250,8 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
+        generatePoints(25, 25, 1.0, 1);
+        drawPoints();
     });
 
     /**
@@ -130,16 +274,16 @@ window.addEventListener('load', function() {
         reader.addEventListener('load', (event) => {
             loadedImage.src = event.target.result;
             loadedImage.onload = function() {
-                // Adds the new image to the canvas and resizes it accordingly.
-                canvas.width = loadedImage.width;
-                canvas.height = loadedImage.height;
-                canvas.getContext('2d').drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height);
+                // Adds the new image to the helpCanvas and resizes it accordingly.
+                helpCanvas.width = loadedImage.width;
+                helpCanvas.height = loadedImage.height;
+                helpCanvas.getContext('2d').drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height);
                 
-                img = new RawImage(canvas.width, canvas.height);
+                img = new RawImage(helpCanvas.width, helpCanvas.height);
 
-                for(var y = 0; y < canvas.height; y++) {
-                    for(var x = 0; x < canvas.width; x++) {
-                        const pData = canvas.getContext('2d').getImageData(x, y, 1, 1).data;
+                for(var y = 0; y < helpCanvas.height; y++) {
+                    for(var x = 0; x < helpCanvas.width; x++) {
+                        const pData = helpCanvas.getContext('2d').getImageData(x, y, 1, 1).data;
                         img.loadSinglePixel(y, x, new Color(pData[0], pData[1], pData[2], pData[3]));
                     }
                 }
@@ -149,4 +293,137 @@ window.addEventListener('load', function() {
         });
         reader.readAsDataURL(file);
     }
+
+    /**
+     * 
+     * @param {number} x The number of points in each row horizontally. Must be an integer and >= 2.
+     * @param {number} y The number of points in each column vertically. Must be an integer and >= 2.
+     * @param {number} randomFactor The amplitude of randomness used to jitter the points. Between 0.0 and 1.0.
+     * @param {number} seed A random offset value used in the random number generation.
+     */
+    function generatePoints(x, y, randomFactor, seed) {
+        if(x < 2 || y < 2) {
+            return;
+        }
+
+        xPoints = x;
+        yPoints = y;
+        points = [];
+        // Generates a grid of randomly generated points
+        for(var xCount = 0; xCount < x; xCount++) {
+            for(var yCount = 0; yCount < y; yCount++) {
+                var newXValue = (xCount + (Math.random() * randomFactor - 0.5) ) / (x - 1);
+                var newYValue = (yCount + (Math.random() * randomFactor - 0.5) ) / (y - 1);
+
+                if(newXValue < 0.0 || xCount == 0) {
+                    newXValue = 0.0;
+                }
+                if(newXValue > 1.0 || xCount == x - 1) {
+                    newXValue = 1.0;
+                }
+
+                if(newYValue < 0.0 || yCount == 0) {
+                    newYValue = 0.0;
+                }
+                if(newYValue > 1.0 || yCount == y - 1) {
+                    newYValue = 1.0;
+                }
+
+                var newPoint = new Point(newXValue, newYValue, false);
+                points.push(newPoint);
+            }
+        }
+    }
+
+    /**
+     * Draws the points within the 'points' array.
+     */
+    function drawPoints() {
+        for(var pointIndex = 0; pointIndex < points.length; pointIndex++) {
+            mainCanvas.getContext('2d').fillRect(points[pointIndex].x * (mainCanvas.width - 1), points[pointIndex].y * (mainCanvas.height - 1), 1, 1);
+        }
+
+        var p1 = new Vector2(-0.5, -0.4);
+        var p2 = new Vector2(-0.5, -0.5);
+        var cen = new Vector2(0,0);
+        console.log(isCounterclockwise(p1, p2, cen));
+    }
+
+    /**
+     * Finds the incenter of the triangle given the triangle's three vertices.
+     * @param {Vector2} p1 The first point of the triangle.
+     * @param {Vector2} p2 The second point of the triangle.
+     * @param {Vector2} p3 The third point of the triangle.
+     * @return {Vector2} The incenter of the triangle, as a Vector2.
+     */
+    function findTriangleIncenter(p1, p2, p3) {
+        const s1 = Math.sqrt( (p2.x - p3.x) * (p2.x - p3.x) + (p2.y - p3.y) * (p2.y - p3.y) );
+        const s2 = Math.sqrt( (p1.x - p3.x) * (p1.x - p3.x) + (p1.y - p3.y) * (p1.y - p3.y) );
+        const s3 = Math.sqrt( (p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y) );
+        return new Vector2( (p1.x + p2.x + p3.x) / (s1 + s2 + s3), (p1.y + p2.y + p3.y) / (s1 + s2 + s3) );
+    }
+
+    /**
+     * Returns whether the first point is counterclockwise or clockwise (small angle) from the
+     * second point, relative to the center point.
+     * @param {Vector2} p1 The first point.
+     * @param {Vector2} p2 The second point.
+     * @param {Vector2} center The central point (incenter) from which the points are compared.
+     */
+    function isCounterclockwise(p1, p2, center) {
+        return (p1.x - center.x) * (p2.y - center.y) - (p2.x - center.x) * (p1.y - center.y) < 0;
+    }
+
+    /**
+     * Starting with a triangle large enough to contain all points, it adds points one-by-one, flipping
+     * triangles appropriately.
+     */
+    function createTriangles() {
+        // Starts the list of triangles.
+        points[0].used = true;
+        points[xPoints - 1].used = true;
+        points[points.length - 1].used = true;
+        points[(xPoints - 1) * (yPoints)].used = true;
+        triangles.push(xPoints - 1, 0, points.length - 1);
+        triangles.push(points.length - 1, 0, (xPoints - 1) * (yPoints));
+
+        // Loops through list of all points, adds them, and flips triangles appropriately.
+        for(var newPointIndex = 0; newPointIndex < points.length; newPointIndex++) {
+            if(!points[newPointIndex].used) {
+                for(var triIndex = 0; triIndex < triangles.length; triIndex++) {
+
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns whether or not the inputted point is inside the inputted triangle.
+     * @param {Vector2} point The coordinates of the point to test.
+     * @param {Vector3} triangle A Vector3 value containing the indices of the triangle.
+     */
+    function isPointInsideTriangle(point, triangle) {
+        const v1 = points[triangle.x];
+        const v2 = points[triangle.y];
+        const v3 = points[triangle.z];
+
+        const cc1 = isCounterclockwise(point, v1, v2);
+        const cc2 = isCounterclockwise(point, v2, v3);
+        const cc3 = isCounterclockwise(point, v3, v1);
+        
+        const cond1 = (cc1 < 0) || (d2 < 0) || (d3 < 0);
+        const cond2 = (cc1 > 0) || (d2 > 0) || (d3 > 0);
+
+        return !(cond1 && cond2);
+    }
+    
+    /**
+     * Returns whether or not the inputted point is inside the inputted triangle's circumcircle.
+     * @param {Vector2} point The coordinates of the point to test.
+     * @param {Vector3} triangle A Vector3 value containing the indices of the triangle.
+     */
+    function isPointInTriangleCircumcircle(point, triangle) {
+        
+    }
+
 });

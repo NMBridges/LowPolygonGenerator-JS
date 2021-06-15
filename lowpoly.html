@@ -19,16 +19,30 @@
 	</div>
 	
 	<hr>
+
+	<div id="toolBox">
+		<label id="toolBoxTitle">Preferences</label><br>
+		<label class="toolBoxLabel" id="xDetailLabel">X-Detail: 20</label><br>
+		<input type="range" min="2" max="40" value="20" class="slider" id="xPointSlider"><br>
+		<label class="toolBoxLabel" id="yDetailLabel">Y-Detail: 20</label><br>
+		<input type="range" min="2" max="40" value="20" class="slider" id="yPointSlider"><br>
+		<label class="toolBoxLabel" id="randomnessLabel">Randomness: 50</label><br>
+		<input type="range" min="0" max="100" value="50" class="slider" id="randomnessSlider"><br>
+		<!--<label class="toolBoxLabel">Tint</label><br>
+		<input type="range" min="0" max="100" value="50" class="slider" id="huePointSlider"><br>-->
+		<button id="regenerateButton">TRIANGULATE</button>
+	</div>
 	
-	<canvas id="helpCanvas">
-		Sorry, your browser does not support the canvas tag.
-	</canvas>
-	<canvas id="mainCanvas">
-		Sorry, your browser does not support the canvas tag.
-	</canvas>
+	<div id="primaryScreen">
+		<canvas id="mainCanvas" hidden="hidden">
+			Sorry, your browser does not support the canvas tag.
+		</canvas>
+		<img id="loadedImage">
+		<img id="triangleImage">
+	</div>
 	
 	<style>* { margin: 0; padding: 0; overflow: hidden; } </style>
-    <img id="loadedImage">
+    
 </body>
 <script type="text/javascript" src="lowpoly.js"></script>
 </html>

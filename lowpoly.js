@@ -5,19 +5,12 @@
  */
 
 /**
- * A webpage element that is used, in this case, to extract image pixel data.
- */
-var helpCanvas = document.getElementById("helpCanvas");
-helpCanvas.width = 0;
-helpCanvas.height = 0;
-helpCanvas.hidden = true;
-
-/**
- * A webpage element that is used, in this case, to render and save new images.
+ * A webpage element that is used, in this case, to render, read, and save new images.
  */
  var mainCanvas = document.getElementById("mainCanvas");
  mainCanvas.width = window.innerWidth / 2;
  mainCanvas.height = window.innerHeight / 2;
+ mainCanvas.hidden = true;
 
 /**
  * Holds pixel data about the user's uploaded image.
@@ -271,12 +264,67 @@ window.addEventListener('load', function() {
     });
 
     /**
-     * The webpage element that is added invisibly to the helpCanvas. It contains
-     * the source image uploaded by the user and is used by the helpCanvas to extract
+     * The webpage element that is added invisibly to the mainCanvas. It contains
+     * the source image uploaded by the user and is used by the mainCanvas to extract
      * pixel data about said image.
      */
     const loadedImage = document.getElementById('loadedImage');
     loadedImage.hidden = true;
+
+    /**
+     * The webpage element that is added visibly to show the triangulated image.
+     */
+    const triangleImage = document.getElementById('triangleImage');
+    triangleImage.hidden = true;
+    
+    /**
+     * Webpage elements that are labels.
+     */
+    const xDetailLabel = document.getElementById('xDetailLabel');
+    const yDetailLabel = document.getElementById('yDetailLabel');
+    const randomnessLabel = document.getElementById('randomnessLabel');
+
+
+    /**
+     * The webpage element that is used by the user to control image generation.
+     */
+    const xPointSlider = document.getElementById('xPointSlider');
+    xPointSlider.addEventListener('change', function(event) {
+        xDetailLabel.textContent = "X-Detail: " + xPointSlider.value;
+    });
+     
+    /**
+     * The webpage element that is used by the user to control image generation.
+     */
+    const yPointSlider = document.getElementById('yPointSlider');
+    yPointSlider.addEventListener('change', function(event) {
+        yDetailLabel.textContent = "Y-Detail: " +  yPointSlider.value;
+    });
+    /**
+     * The webpage element that is used by the user to control image generation.
+     */
+    const randomnessSlider = document.getElementById('randomnessSlider');
+    randomnessSlider.addEventListener('change', function(event) {
+        randomnessLabel.textContent = "Randomness: " +  randomnessSlider.value;
+    });
+
+    const regenerateButton = this.document.getElementById("regenerateButton");
+    regenerateButton.addEventListener('click', function() {
+        if(img != null) {
+            if(img.pixels.length > 3) {
+                generatePoints(xPointSlider.value, yPointSlider.value, randomnessSlider.value / 100);
+                createTriangles();
+                drawTriangles();
+
+                triangleImage.src = mainCanvas.toDataURL();
+                triangleImage.hidden = false;
+
+                //mainCanvas.hidden = false;
+
+                mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            }
+        }
+    });
 
     /**
      * When a file is uploaded, it calls the 'readImage()' function to
@@ -286,9 +334,6 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
-        generatePoints(16, 16, 1, 1);
-        createTriangles();
-        console.log(points);
     });
 
     /**
@@ -311,29 +356,24 @@ window.addEventListener('load', function() {
         reader.addEventListener('load', (event) => {
             loadedImage.src = event.target.result;
             loadedImage.onload = function() {
-                // Adds the new image to the helpCanvas and resizes it accordingly.
-                helpCanvas.width = loadedImage.width;
-                helpCanvas.height = loadedImage.height;
-                helpCanvas.getContext('2d').drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height);
+                // Adds the new image to the mainCanvas and resizes it accordingly.
+                mainCanvas.width = loadedImage.width;
+                mainCanvas.height = loadedImage.height;
+                mainCanvas.getContext('2d').drawImage(loadedImage, 0, 0, loadedImage.width, loadedImage.height);
                 
                 const imgHoverWratio = loadedImage.height / loadedImage.width;
-                mainCanvas.width = window.innerWidth / 2;
-                mainCanvas.height = window.innerWidth / 2 * imgHoverWratio;
+                //mainCanvas.width = window.innerWidth / 2;
+                //mainCanvas.height = window.innerWidth / 2 * imgHoverWratio;
 
-                img = new RawImage(helpCanvas.width, helpCanvas.height);
+                img = new RawImage(mainCanvas.width, mainCanvas.height);
 
-                for(var y = 0; y < helpCanvas.height; y++) {
-                    for(var x = 0; x < helpCanvas.width; x++) {
-                        const pData = helpCanvas.getContext('2d').getImageData(x, y, 1, 1).data;
+                for(var y = 0; y < mainCanvas.height; y++) {
+                    for(var x = 0; x < mainCanvas.width; x++) {
+                        const pData = mainCanvas.getContext('2d').getImageData(x, y, 1, 1).data;
                         img.loadSinglePixel(y, x, new Color(pData[0], pData[1], pData[2], pData[3]));
                     }
                 }
-
-                console.log(img);
-                console.log(triangles);
-
-                drawTriangles();
-                console.log(triangles.length);
+                triangleImage.src = event.target.result;
             }
         });
         reader.readAsDataURL(file);
@@ -344,9 +384,8 @@ window.addEventListener('load', function() {
      * @param {number} x The number of points in each row horizontally. Must be an integer and >= 2.
      * @param {number} y The number of points in each column vertically. Must be an integer and >= 2.
      * @param {number} randomFactor The amplitude of randomness used to jitter the points. Between 0.0 and 1.0.
-     * @param {number} seed A random offset value used in the random number generation.
      */
-    function generatePoints(x, y, randomFactor, seed) {
+    function generatePoints(x, y, randomFactor) {
         if(x < 2 || y < 2) {
             return;
         }

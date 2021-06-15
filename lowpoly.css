@@ -47,3 +47,80 @@ body {
     margin-left: 10px;
     color: #F5E9E2;
 }
+
+#toolBox {
+    float: left;
+    margin-left: 25px;
+    margin-top: 25px;
+    color:#F5E9E2;
+    font-size: 20px;
+    font-weight:500;
+    line-height: 25px;
+}
+
+#toolBoxTitle {
+    line-height: 45px;
+}
+
+#regenerateButton {
+    margin-top: 15px;
+    padding: 15px;
+    color: #773344;
+    background-color: #F5E9E2;
+    border: 0px solid #773344;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;}
+
+.toolBoxLabel {
+    font-size: 15px;
+    font-weight: 200;
+}
+
+.slider {
+    -webkit-appearance: none;
+    width: 200px;
+    height: 7px;
+    background:#F5E9E2;
+    outline: none;
+    border-radius: 3px;
+}
+
+.slider::webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    background: #F5E9E2;
+    overflow: visible;
+    margin-top: -14px;
+    cursor: pointer;
+}
+
+#primaryScreen {
+    float: right;
+    margin-right: 25px;
+    margin-top: 25px;
+    width: calc(100% - 275px);
+    height: calc(100vh - 110px);
+    border: 1px solid #F5E9E2;
+    position:relative;
+}
+
+#triangleImage {
+    float: none;
+    margin-top: none;
+    object-fit: contain;
+    max-height: 100%;
+    max-width: 100%;
+    position:absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    vertical-align: middle;
+}

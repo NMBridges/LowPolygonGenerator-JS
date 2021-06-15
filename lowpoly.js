@@ -300,6 +300,7 @@ window.addEventListener('load', function() {
     yPointSlider.addEventListener('change', function(event) {
         yDetailLabel.textContent = "Y-Detail: " +  yPointSlider.value;
     });
+    
     /**
      * The webpage element that is used by the user to control image generation.
      */
@@ -307,9 +308,42 @@ window.addEventListener('load', function() {
     randomnessSlider.addEventListener('change', function(event) {
         randomnessLabel.textContent = "Randomness: " +  randomnessSlider.value;
     });
+    
+    /**
+     * The webpage element that overlays content when it should not be accessed.
+     */
+    const overlay = document.getElementById('overlay');
 
+    /**
+     * Toggles on the overlay.
+     */
+     function overlayOn() {
+        overlay.style.display = "block";
+        const contenta = overlay.innerHTML;
+        overlay.innerHTML = contenta;
+        overlay.focus();
+    }
+    
+    /**
+     * Toggles off the overlay.
+     */
+    function overlayOff() {
+        overlay.style.display = "none";
+        const contenta = overlay.innerHTML;
+        overlay.innerHTML = contenta;
+        overlay.focus();
+    }
+
+    /**
+     * The button that is pressed to generate the low-poly image.
+     */
     const regenerateButton = this.document.getElementById("regenerateButton");
     regenerateButton.addEventListener('click', function() {
+        overlayOn();
+        setTimeout(generateNewImage, 500);
+    });
+
+    function generateNewImage() {
         if(img != null) {
             if(img.pixels.length > 3) {
                 generatePoints(xPointSlider.value, yPointSlider.value, randomnessSlider.value / 100);
@@ -324,7 +358,8 @@ window.addEventListener('load', function() {
                 mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
             }
         }
-    });
+        overlayOff();
+    }
 
     /**
      * When a file is uploaded, it calls the 'readImage()' function to
@@ -332,9 +367,18 @@ window.addEventListener('load', function() {
      * triangle calculation.
      */
     fileSelector.addEventListener('change', (event) => {
+        overlayOn();
         const fileList = event.target.files;
-        readImage(fileList[0]);
+        this.setTimeout(readNewImage(fileList), 500);
     });
+
+    /**
+     * Reads the new image asynchronously.
+     * @param {File[]} fileList
+     */
+    function readNewImage(fileList) {
+        readImage(fileList[0]);
+    }
 
     /**
      * Analyzes the inputted image file, extracting pixel data and storing
@@ -374,6 +418,7 @@ window.addEventListener('load', function() {
                     }
                 }
                 triangleImage.src = event.target.result;
+                overlayOff();
             }
         });
         reader.readAsDataURL(file);
@@ -485,7 +530,6 @@ window.addEventListener('load', function() {
         mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
         if(fill) {
             getTriangleColors();
-            console.log(triColors);
         }
         for(var triIndex = 0; triIndex < triangles.length; triIndex++) {
             mainCanvas.getContext('2d').beginPath();

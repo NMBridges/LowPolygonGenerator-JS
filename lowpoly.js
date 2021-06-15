@@ -343,9 +343,13 @@ window.addEventListener('load', function() {
         setTimeout(generateNewImage, 500);
     });
 
+    /**
+     * Generates a new low-poly image if the source image is valid.
+     */
     function generateNewImage() {
         if(img != null) {
-            if(img.pixels.length > 3) {
+            if(img.pixels.length > 3 && img.pixels.length * img.pixels[0].length == img.width * img.height) {
+                document.getElementById('errorLabelId').hidden = true;
                 generatePoints(xPointSlider.value, yPointSlider.value, randomnessSlider.value / 100);
                 createTriangles();
                 drawTriangles();
@@ -356,6 +360,10 @@ window.addEventListener('load', function() {
                 //mainCanvas.hidden = false;
 
                 mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            } else {
+                // image is invalid
+                // show error
+                document.getElementById('errorLabelId').hidden = false;
             }
         }
         overlayOff();

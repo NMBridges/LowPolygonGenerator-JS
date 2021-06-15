@@ -261,6 +261,14 @@ window.addEventListener('load', function() {
      * The webpage element that asks the user to upload an image.
      */
     const fileSelector = document.getElementById('fileSelector');
+    
+    /**
+     * Button used to click to upload an image.
+     */
+    const fileButton = document.getElementById('fileButton');
+    fileButton.addEventListener('click', function() {
+        fileSelector.click();
+    });
 
     /**
      * The webpage element that is added invisibly to the helpCanvas. It contains
@@ -278,7 +286,7 @@ window.addEventListener('load', function() {
     fileSelector.addEventListener('change', (event) => {
         const fileList = event.target.files;
         readImage(fileList[0]);
-        generatePoints(12, 8, 1, 1);
+        generatePoints(16, 16, 1, 1);
         createTriangles();
         console.log(points);
     });
@@ -324,7 +332,7 @@ window.addEventListener('load', function() {
                 console.log(img);
                 console.log(triangles);
 
-                drawTriangles(false);
+                drawTriangles();
                 console.log(triangles.length);
             }
         });
@@ -353,17 +361,17 @@ window.addEventListener('load', function() {
                 var newYValue = (yCount + (Math.random() - 0.5) * randomFactor ) / (y - 1);
 
                 if(newXValue < 0.0 || xCount == 0) {
-                    newXValue = 0.0;
+                    newXValue = 0.0 + ((yCount != 0 && yCount !=  y - 1) ? 0.001 : 0.0);
                 }
                 if(newXValue > 1.0 || xCount == x - 1) {
-                    newXValue = 1.0;
+                    newXValue = 1.0 - ((yCount != 0 && yCount !=  y - 1) ? 0.001 : 0.0);
                 }
 
                 if(newYValue < 0.0 || yCount == 0) {
-                    newYValue = 0.0;
+                    newYValue = 0.0 + ((xCount != 0 && xCount !=  x - 1) ? 0.001 : 0.0);
                 }
                 if(newYValue > 1.0 || yCount == y - 1) {
-                    newYValue = 1.0;
+                    newYValue = 1.0 - ((xCount != 0 && xCount !=  x - 1) ? 0.001 : 0.0);
                 }
 
                 var newPoint = new Point(newXValue, newYValue, false);
@@ -449,8 +457,8 @@ window.addEventListener('load', function() {
             if(fill) {
                 mainCanvas.getContext('2d').fillStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
                 mainCanvas.getContext('2d').fill();
+                mainCanvas.getContext('2d').strokeStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
             }
-            //mainCanvas.getContext('2d').strokeStyle = "rgba(" + triColors[triIndex].r + ", " + triColors[triIndex].g + ", " + triColors[triIndex].b + ", " + triColors[triIndex].a / 255 + ")";
             mainCanvas.getContext('2d').stroke();
         }
     }
@@ -529,19 +537,19 @@ window.addEventListener('load', function() {
 
                             var countToFlipCheck = 0;
 
-                            var newTri = reorderCounterclockwise(new Vector3(v1, v2, newPointIndex));
+                            var newTri = new Vector3(v1, v2, newPointIndex);
                             if(!hasZeroArea(newTri)) {
-                                triangles.push(newTri);
+                                triangles.push(reorderCounterclockwise(newTri));
                                 countToFlipCheck++;
                             }
-                            newTri = reorderCounterclockwise(new Vector3(v1, v3, newPointIndex));
+                            newTri = new Vector3(v1, v3, newPointIndex);
                             if(!hasZeroArea(newTri)) {
-                                triangles.push(newTri);
+                                triangles.push(reorderCounterclockwise(newTri));
                                 countToFlipCheck++;
                             }
-                            newTri = reorderCounterclockwise(new Vector3(v2, v3, newPointIndex));
+                            newTri = new Vector3(v2, v3, newPointIndex);
                             if(!hasZeroArea(newTri)) {
-                                triangles.push(newTri);
+                                triangles.push(reorderCounterclockwise(newTri));
                                 countToFlipCheck++;
                             }
                             
@@ -556,6 +564,11 @@ window.addEventListener('load', function() {
                 points[newPointIndex].used = true;
             }
         }
+
+        for(var triIndx = 0; triIndx < triangles.length; triIndx++) {
+            recursiveFlip(triIndx, 0);
+        }
+
     }
 
     /**

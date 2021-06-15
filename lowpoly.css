@@ -1,0 +1,49 @@
+body {
+    background-color: #773344;
+    color: #F5E9E2;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.title {
+    color: #F5E9E2;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    font-size: 25px;
+}
+
+.titleBar {
+    background-color: #D44D5C;
+    color: #F5E9E2;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding-left: 20px;
+    font-size: 12px;
+    line-height: 50px;
+    padding-top: 5px;
+}
+
+.uploadButton {
+    color: #F5E9E2;
+}
+
+.uploading {
+    float: right;
+    padding-right: 15px;
+}
+#fileButton {
+    padding: 15px;
+    color: #D44D5C;
+    background-color: #F5E9E2;
+    border: 0px solid #773344;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#fileButton:hover {
+    background-color: #773344;
+}
+
+#fileLabel {
+    margin-left: 10px;
+    color: #F5E9E2;
+}

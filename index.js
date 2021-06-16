@@ -292,6 +292,26 @@ window.addEventListener('load', function() {
     });
     
     /**
+     * The button that is pressed to download the .obj file.
+     */
+    const downloadObj = this.document.getElementById("downloadObj");
+    downloadObj.addEventListener('click', function() {
+        exportObj();
+    });
+
+    /**
+     * The button that is pressed to download the .png file.
+     */
+     const downloadPng = this.document.getElementById("downloadPng");
+     downloadPng.addEventListener('click', function() {
+        if(triangleImage != null) {
+            if(triangleImage.src != null && triangleImage.src != "") {
+                exportPng();
+            }
+        }
+     });
+
+    /**
      * Webpage elements that are labels.
      */
     const xDetailLabel = document.getElementById('xDetailLabel');
@@ -674,6 +694,11 @@ window.addEventListener('load', function() {
             recursiveFlip(triIndx, 0);
         }
 
+        
+        for(var triIndx = 0; triIndx < triangles.length; triIndx++) {
+            recursiveFlip(triIndx, 0);
+        }
+
     }
 
     /**
@@ -687,31 +712,33 @@ window.addEventListener('load', function() {
     function recursiveFlip(a, flipCount) {
         const tri = triangles[a];
         for(var index = 0; index < points.length; index++) {
-            if(index != tri.x && index != tri.y && index != tri.z && points[index].used) {
-                if(isPointInTriangleCircumcircle(new Vector2(points[index].x, points[index].y), tri)) {
-                    // Check if there are any triangles with vertices of that point + two values of
-                    // the original triangle (aka they share a side)
-                    const firstTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.y));
-                    const secondTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.z));
-                    const thirdTest = indexOfTriWithPointVertices(new Vector3(index, tri.y, tri.y));
-                    
-                    var indexToUse = -1;
-                    if(firstTest != -1) {
-                        indexToUse = firstTest;
-                    } else if(secondTest != -1) {
-                        indexToUse = secondTest;
-                    } else if(thirdTest != -1) {
-                        indexToUse = thirdTest;
-                    }
-                    
-                    if(indexToUse != -1) {
-                        flipTriangles(a, indexToUse);
-                        // The max number of recursions per initial call.
-                        if(flipCount + 1 < 1500) {
-                            recursiveFlip(indexToUse, flipCount + 1);
-                            recursiveFlip(a, flipCount + 1);
+            if(points[index].used) {
+                if(index != tri.x && index != tri.y && index != tri.z) {
+                    if(isPointInTriangleCircumcircle(new Vector2(points[index].x, points[index].y), tri)) {
+                        // Check if there are any triangles with vertices of that point + two values of
+                        // the original triangle (aka they share a side)
+                        const firstTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.y));
+                        const secondTest = indexOfTriWithPointVertices(new Vector3(index, tri.x, tri.z));
+                        const thirdTest = indexOfTriWithPointVertices(new Vector3(index, tri.y, tri.y));
+                        
+                        var indexToUse = -1;
+                        if(firstTest != -1) {
+                            indexToUse = firstTest;
+                        } else if(secondTest != -1) {
+                            indexToUse = secondTest;
+                        } else if(thirdTest != -1) {
+                            indexToUse = thirdTest;
                         }
-                        return;
+                        
+                        if(indexToUse != -1) {
+                            flipTriangles(a, indexToUse);
+                            // The max number of recursions per initial call.
+                            if(flipCount + 1 < 1500) {
+                                recursiveFlip(a, flipCount + 1);
+                                recursiveFlip(indexToUse, flipCount + 1);
+                            }
+                            return;
+                        }
                     }
                 }
             }
@@ -780,7 +807,7 @@ window.addEventListener('load', function() {
             new Vector3( c.x - d.x, c.y - d.y, (c.x - d.x) * (c.x - d.x) + (c.y - d.y) * (c.y - d.y) )
         );
 
-        return mat.determinant() > 0;
+        return (mat.determinant() > 0);
     }
 
     /**
@@ -821,7 +848,7 @@ window.addEventListener('load', function() {
         const s2 = Math.sqrt((p1.x - p3.x) * (p1.x - p3.x) + (p1.y - p3.y) * (p1.y - p3.y));
         const s3 = Math.sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
 
-        return (s1 == s2 + s3 || s2 == s1 + s3 || s3 == s1 + s2);
+        return (s1 >= s2 + s3 - 0.00000 || s2 >= s1 + s3 - 0.00000 || s3 >= s1 + s2 - 0.00000);
     }
 
     /**
@@ -904,6 +931,58 @@ window.addEventListener('load', function() {
         // Updates 'triangles.'
         triangles[a] = newTri1;
         triangles[b] = newTri2;
+    }
+
+    /**
+     * Exports the triangularized image as an .obj file.
+     */
+    function exportObj() {
+        const ratio = img.height / img.width;
+        
+        var input = "";
+
+        for(var indx = 0; indx < triangles.length; indx++) {
+            input += "newmtl mat" + indx + "\n";
+            input += "Kd " + (triColors[indx].r / 255) + " " + (triColors[indx].g / 255) + " " + (triColors[indx].b / 255) + "\n";
+        }
+        
+        var data = new Blob([input], {type: 'text/plain'});
+        var newUrl = window.URL.createObjectURL(data);
+        
+        var dlLink = document.createElement('a');
+        dlLink.setAttribute('download', 'lowpoly.mtl');
+        dlLink.href = newUrl;
+        document.body.appendChild(dlLink);
+        dlLink.click();
+
+        input = "mtllib 3d.mtl\n";
+        for(var indx = 0; indx < points.length; indx++) {
+            input += "v " + points[indx].x + " " + ((1 - points[indx].y) * ratio) + " " + Math.random() * 0.1 + "\n";
+        }
+        for(var indx = 0; indx < triangles.length; indx++) {
+            input += "usemtl mat" + indx + "\n";
+            input += "f " + (triangles[indx].x + 1) + " " + (triangles[indx].z + 1) + " " + (triangles[indx].y + 1) + "\n";
+        }
+        
+        data = new Blob([input], {type: 'text/plain'});
+        newUrl = window.URL.createObjectURL(data);
+
+        dlLink = document.createElement('a');
+        dlLink.setAttribute('download', 'lowpoly.obj');
+        dlLink.href = newUrl;
+        document.body.appendChild(dlLink);
+        dlLink.click();
+    }
+
+    /**
+     * Downloads the low poly image as a .png.
+     */
+    function exportPng() {
+        var dlLink = document.createElement('a');
+        dlLink.setAttribute('download', 'lowpoly.png');
+        dlLink.href = triangleImage.src;
+        document.body.appendChild(dlLink);
+        dlLink.click();
     }
 
 });

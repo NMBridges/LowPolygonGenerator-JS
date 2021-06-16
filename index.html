@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Low Polygon Generator</title>
-
+	<link rel="shortcut icon" type="image/x-icon" href="tabicon.ico"/>
 <link href="https://fonts.googleapis.com/css?family=Staatliches" rel="stylesheet">
 <link href="index.css" rel="stylesheet">
 </head>
@@ -29,10 +29,10 @@
 		<input type="range" min="2" max="40" value="20" class="slider" id="yPointSlider"><br>
 		<label class="toolBoxLabel" id="randomnessLabel">Randomness: 50</label><br>
 		<input type="range" min="0" max="100" value="50" class="slider" id="randomnessSlider"><br>
-		<!--<label class="toolBoxLabel">Tint</label><br>
-		<input type="range" min="0" max="100" value="50" class="slider" id="huePointSlider"><br>-->
 		<p class="timeoutLabel">Maximum time before timeout: 500 seconds</p>
 		<button id="regenerateButton">TRIANGULATE</button><br>
+		<button id="downloadPng" class="download">SAVE .PNG</button>
+		<button id="downloadObj" class="download">SAVE .OBJ</button><br>
 		<p class="errorLabel" id="errorLabelId" hidden="hidden">Please select a valid image.</p>
 		
 		<label id="aboutLabel0">About</label><br>

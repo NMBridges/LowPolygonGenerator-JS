@@ -101,6 +101,19 @@ body {
     width: 200px;
 }
 
+.download {
+    margin-top: 5px;
+    padding: 15px;
+    color: #773344;
+    background-color: #F5E9E2;
+    border: 0px solid #773344;
+    font-weight: bold;
+    font-size: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 97px;
+}
+
 .toolBoxLabel {
     font-size: 15px;
     font-weight: 200;

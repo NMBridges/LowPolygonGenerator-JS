@@ -165,7 +165,7 @@ body {
 
 #aboutLabel0 {
     position: absolute;
-    bottom: min(100vh - 420px, 110px);
+    bottom: min(100vh - 470px, 110px);
 }
 
 #aboutLabel1 {
@@ -173,7 +173,7 @@ body {
     font-size: 15px;
     font-weight: normal;
     color:darkgray;
-    bottom: min(100vh - 450px, 80px);
+    bottom: min(100vh - 500px, 80px);
 }
 
 #aboutLabel2 {
@@ -181,12 +181,12 @@ body {
     font-size: 15px;
     font-weight: normal;
     color:darkgray;
-    bottom: min(100vh - 475px, 55px);
+    bottom: min(100vh - 525px, 55px);
 }
 
 #shareButton {
     position: absolute;
-    bottom: min(100vh - 500px, 25px);
+    bottom: min(100vh - 550px, 25px);
     background-color: darkgray;
     color:#773344;
     border: 0px solid white;

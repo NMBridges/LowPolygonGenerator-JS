@@ -689,11 +689,6 @@ window.addEventListener('load', function() {
                 points[newPointIndex].used = true;
             }
         }
-
-        for(var triIndx = 0; triIndx < triangles.length; triIndx++) {
-            recursiveFlip(triIndx, 0);
-        }
-
         
         for(var triIndx = 0; triIndx < triangles.length; triIndx++) {
             recursiveFlip(triIndx, 0);

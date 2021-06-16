@@ -276,6 +276,20 @@ window.addEventListener('load', function() {
      */
     const triangleImage = document.getElementById('triangleImage');
     triangleImage.hidden = true;
+
+    /**
+     * The button that is pressed to copy the web url.
+     */
+    const shareButton = this.document.getElementById("shareButton");
+    shareButton.addEventListener('click', function() {
+        var copyText = window.location.href;
+        navigator.clipboard.writeText(copyText);
+        shareButton.textContent = "Link copied to clipboard";
+    });
+
+    shareButton.addEventListener('focusout', function() {
+        shareButton.textContent = "Share";
+    });
     
     /**
      * Webpage elements that are labels.
@@ -350,7 +364,7 @@ window.addEventListener('load', function() {
         if(img != null) {
             if(img.pixels.length > 3 && img.pixels.length * img.pixels[0].length == img.width * img.height) {
                 document.getElementById('errorLabelId').hidden = true;
-                generatePoints(xPointSlider.value, yPointSlider.value, randomnessSlider.value / 100);
+                generatePoints(xPointSlider.value, yPointSlider.value, randomnessSlider.value / 50);
                 createTriangles();
                 drawTriangles();
 
@@ -436,7 +450,7 @@ window.addEventListener('load', function() {
      * 
      * @param {number} x The number of points in each row horizontally. Must be an integer and >= 2.
      * @param {number} y The number of points in each column vertically. Must be an integer and >= 2.
-     * @param {number} randomFactor The amplitude of randomness used to jitter the points. Between 0.0 and 1.0.
+     * @param {number} randomFactor The amplitude of randomness used to jitter the points. Between 0.0 and 2.0.
      */
     function generatePoints(x, y, randomFactor) {
         if(x < 2 || y < 2) {

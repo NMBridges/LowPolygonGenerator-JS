@@ -146,8 +146,48 @@ body {
     margin-top: 25px;
     width: calc(100% - 275px);
     height: calc(100vh - 110px);
-    border: 1px solid #F5E9E2;
+    border: 1px solid #a16977;
     position:relative;
+}
+
+#aboutLabel0 {
+    position: absolute;
+    bottom: min(100vh - 420px, 110px);
+}
+
+#aboutLabel1 {
+    position: absolute;
+    font-size: 15px;
+    font-weight: normal;
+    color:darkgray;
+    bottom: min(100vh - 450px, 80px);
+}
+
+#aboutLabel2 {
+    position: absolute;
+    font-size: 15px;
+    font-weight: normal;
+    color:darkgray;
+    bottom: min(100vh - 475px, 55px);
+}
+
+#shareButton {
+    position: absolute;
+    bottom: min(100vh - 500px, 25px);
+    background-color: darkgray;
+    color:#773344;
+    border: 0px solid white;
+    width: 200px;
+    height: 25px;
+    border-radius: 5px;
+}
+
+#shareButton:hover {
+    background-color: rgb(200, 200, 200);
+}
+
+#shareButton:focus {
+    background-color: rgb(120, 120, 120);
 }
 
 #triangleImage {

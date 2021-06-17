@@ -487,17 +487,17 @@ window.addEventListener('load', function() {
                 var newYValue = (yCount + (Math.random() - 0.5) * randomFactor ) / (y - 1);
 
                 if(newXValue < 0.0 || xCount == 0) {
-                    newXValue = 0.0 + ((yCount != 0 && yCount !=  y - 1) ? 0.001 : 0.0);
+                    newXValue = 0.0 + ((yCount != 0 && yCount !=  y - 1) ? 0.0 : 0.0);
                 }
                 if(newXValue > 1.0 || xCount == x - 1) {
-                    newXValue = 1.0 - ((yCount != 0 && yCount !=  y - 1) ? 0.001 : 0.0);
+                    newXValue = 1.0 - ((yCount != 0 && yCount !=  y - 1) ? 0.0 : 0.0);
                 }
 
                 if(newYValue < 0.0 || yCount == 0) {
-                    newYValue = 0.0 + ((xCount != 0 && xCount !=  x - 1) ? 0.001 : 0.0);
+                    newYValue = 0.0 + ((xCount != 0 && xCount !=  x - 1) ? 0.0 : 0.0);
                 }
                 if(newYValue > 1.0 || yCount == y - 1) {
-                    newYValue = 1.0 - ((xCount != 0 && xCount !=  x - 1) ? 0.001 : 0.0);
+                    newYValue = 1.0 - ((xCount != 0 && xCount !=  x - 1) ? 0.0 : 0.0);
                 }
 
                 var newPoint = new Point(newXValue, newYValue, false);
@@ -692,6 +692,17 @@ window.addEventListener('load', function() {
         
         for(var triIndx = 0; triIndx < triangles.length; triIndx++) {
             recursiveFlip(triIndx, 0);
+        }
+
+        for(var triIndx = 0; triIndx < triangles.length; triIndx++) {
+            const tri = triangles[triIndx];
+            if(hasZeroArea(tri)) {
+                triangles.splice(triIndx, 1);
+                triIndx--;
+            } else if((points[tri.x].x == points[tri.y].x && points[tri.x].x == points[tri.z].x) || (points[tri.x].y == points[tri.y].y && points[tri.x].y == points[tri.z].y)) {
+                triangles.splice(triIndx, 1);
+                triIndx--;
+            }
         }
 
     }
@@ -949,6 +960,8 @@ window.addEventListener('load', function() {
         dlLink.href = newUrl;
         document.body.appendChild(dlLink);
         dlLink.click();
+
+        console.log(points);
 
         input = "mtllib 3d.mtl\n";
         for(var indx = 0; indx < points.length; indx++) {
